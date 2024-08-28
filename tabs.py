@@ -1,6 +1,8 @@
 import tkinter as tk
-import subprocess
+import requests
 from tkinter import ttk, messagebox, scrolledtext
+from bs4 import BeautifulSoup
+
 
 class Tabs:
     def __init__(self, root):
@@ -23,7 +25,7 @@ class Tabs:
         self.tab3 = ttk.Frame(self.notebook)
 
         # Adicionando as abas ao Notebook
-        self.notebook.add(self.tab1, text="Aba 1")
+        self.notebook.add(self.tab1, text="GET HTML")
         self.notebook.add(self.tab2, text="Aba 2")
         self.notebook.add(self.tab3, text="aba 3")
 
@@ -38,36 +40,53 @@ class Tabs:
 
     def create_tab1_content(self):
         # Adicionando conteúdo à Aba 1
-        label = tk.Label(self.tab1, text="Scan")
-        label.grid(row=0, column=1, padx=5, pady=5)
+        self.label = tk.Label(self.tab1, text="URL")
+        self.label.place(x=135, y=10)
+
+        # Campo url
+        self.campo_texto_url = tk.Entry(self.tab1, width=30)
+        self.campo_texto_url.place(x=30,y=30)
+
+        # Botão para escanear
+        self.button = tk.Button(self.tab1, text="Scanner", command=self.on_button_click_scanner, width=5, height=1)
+        self.button.place(x=120, y=60)
 
         # Criar caixa de texto com rolagem
         self.text_box = scrolledtext.ScrolledText(self.root, wrap=tk.WORD, width=60, height=20, state=tk.DISABLED)
-        self.text_box.grid(row=0, column=1, padx=5, pady=5)
-
-        # Botão para escanear
-        button = tk.Button(self.tab1, text="Scanner", command=self.on_button_click_scanner)
-        button.grid(row=2, column=1, padx=5, pady=5)
+        self.text_box.place(x=300, y=50, relwidth=0.6, relheight=0.2)
 
     def create_tab2_content(self):
         # Adicionando conteúdo à Aba 2
-        label = tk.Label(self.tab2, text="Conteúdo da Aba 2")
-        label.grid(row=0, column=1, padx=5, pady=5)
+        self.label = tk.Label(self.tab2, text="Conteúdo da Aba 2")
+        self.label.place(x=50, y=50, relwidth=0.2, relheight=0.2)
 
     def create_tab3_content(self):
         # Adicionando conteúdo à Aba 3
-        label = tk.Label(self.tab3, text="Conteúdo da Aba 3")
-        label.grid(row=0, column=1, padx=5, pady=5)
+        self.label = tk.Label(self.tab3, text="Conteúdo da Aba 3")
+        self.label.place(x=50, y=50, relwidth=0.2, relheight=0.2)
 
 ###########################################################################################
 #####################           FUNÇÕES ABA SCANNER             ###########################
 ###########################################################################################
 
     def on_button_click_scanner(self):
-        # Função para adicionar informação à caixa de texto
-        self.text_box.config(state=tk.NORMAL)
-        info = subprocess.run(['pwd'], capture_output=True, text=True)
-        output = info.stdout.strip()  # Remove espaços em branco e novas linhas no início e no fim
-        self.text_box.insert(tk.END, output)
-        self.text_box.config(state=tk.DISABLED)
-        self.text_box.see(tk.END) # Rolagem automática até o final
+        url = self.campo_texto_url.get()
+        if url == "":
+            self.aviso_url_em_branco()
+        else:
+            self.response = requests.get(url)
+            if self.response.status_code == 200:
+                html_recebido = self.response.text
+                html_formatado = BeautifulSoup(html_recebido, 'html.parser').prettify()
+                self.text_box.config(state=tk.NORMAL)
+                self.text_box.insert(tk.END, html_formatado)
+                self.text_box.config(state=tk.DISABLED)
+                self.text_box.see(tk.END) # Rolagem automática até o final
+            else:
+                self.url_invalida()
+
+    def aviso_url_em_branco(self):
+        messagebox.showwarning("Aviso", "É necessário inserir uma URL")
+
+    def url_invalida(self):
+        messagebox.showerror("URL inválida", "É necessario verificar a URL ou a página web. Status code:", self.response.status_code)
